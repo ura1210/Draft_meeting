@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ドラフトごっこ(β)</title>
+  <script src="../../socket.io/socket.io.js"></script>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <link href="https://fonts.googleapis.com/earlyaccess/kokoro.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/earlyaccess/hannari.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c" rel="stylesheet">
+  <script src="/materialize.js"></script>
+  <link rel="stylesheet" href="/materialize.css">
+  <link rel="stylesheet" href="/index.css">
+</head>
+
+<body>
+  <div class="wrapper all container">
+    <div class="wrapper title">
+      <h1>ドラフトごっこ(β)</h1>
+    </div>
+    <div class="wrapper inputbox">
+      <div class="create" id="create_room_wrapper row">
+        <h2>部屋を作成</h2>
+        <form id="create_form" action="/room" method="POST">
+          <div class="row">
+            <div class="input-field col s6">
+              <label>ニックネーム</label>
+              <input type="text" class="validate" id="careate_name" autocomplete="off" name="name" required />
+            </div>
+            <div class="input-field col s6">
+              <label>部屋ID</label>
+              <input type="text" class="validate" id="careate_channel" autocomplete="off" name="id" required />
+            </div>
+            <div class="input-field col s6">
+              <label>タイトル</label>
+              <input type="text" id="careate_title" autocomplete="off" name="title" />
+            </div>
+            <div class="input-field col s12">
+              <label>ドラフト候補一覧</label>
+              <textarea name="drafted" class="materialize-textarea" rows="8" cols="50" placeholder=""
+                required></textarea>
+            </div>
+          </div>
+          <div>
+            <p id="msg"><%= msg %></p>
+          </div>
+          <div class="roomButton">
+            <button class="btn waves-effect waves-light" type="submit" name="action">
+              作成
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="in" id="in_room_wrapper">
+        <h2>部屋に入室</h2>
+        <form id="in_form" action="/room" method="POST">
+          <div class="input-field col s6">
+            <label>ニックネーム</label>
+            <input type="text" id="in_name" autocomplete="off" name="name" required />
+          </div>
+          <div class="input-field col s6">
+            <label>部屋ID</label>
+            <input type="text" id="in_channel" autocomplete="off" name="id" required />
+          </div>
+          <div class="roomButton">
+            <button class="btn waves-effect waves-light" type="submit" name="action">
+              入室
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  
+  <div class="container howto">
+    <h3>遊び方</h3>
+    <ol>
+      <li>ニックネーム、部屋ID、タイトル、ドラフト候補を入力して部屋を作成。ドラフト候補は一つを一行づつ入力してください。
+        </br>または既に存在する部屋にニックネームと部屋IDを入力して入室</li>
+      <li>メンバーが揃って準備ができたらREADYボタンをクリック</li>
+      <li>獲得したいドラフト候補を選択して指名ボタンをクリック</li>
+    </ol>
+    <h3>ルール</h3>
+    <ul>
+      <li>　同一順目で競合した場合、指名者内から抽選し、抽選負けの場合は再指名</li>
+      <li>全員が1人獲得確定したら1順終了</li>
+      <li>10巡目終了、または参加人数よりドラフト候補が少なくなったら終了</li>
+    </ul>
+  </div>
+</div>
+  <footer class="page-footer">
+    <div class="footer-copyright">
+      <div class="container">
+        © 2019 ドラフトごっこ　Copyright All rights reserved.
+        <a class="grey-text text-lighten-4 right" href="#!">developed by @ura</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const socketio = io();
+     
+  </script>
+</body>
+
+</html>

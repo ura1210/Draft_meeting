@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ドラフトごっこ(β)</title>
+  <script src="../../socket.io/socket.io.js"></script>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script src="/materialize.js"></script>
+  <script src="/modaal.min.js"></script>
+  <link rel="stylesheet" href="/materialize.css">
+  <link rel="stylesheet" href="/room.css">
+  <link rel="stylesheet" href="/modaal.min.css">
+</head>
+
+<body>
+  <div class="wrapper all container">
+    <div class="row wrapper title">
+      <div class="wrapper member">
+      </div>
+      <div class="col s3 push-s9">
+        <span class="flow-text">
+          <label>参加者</label>
+          <ul id="member_list">
+          </ul>
+        </span>
+      </div>
+      <div class="col s9 pull-s3">
+        <span class="flow-text">
+          <h1 class="title"><%= title %>ドラフト会議</h1>
+        </span></div>
+    </div>
+    <div class="wrapper now_ch">
+      <label>ニックネーム:</label>
+      <p id="name"><%= name %></p>
+      <label>部屋ID:</label>
+      <p id="now_ch"><%= id %></p>
+      <button id="ready" class="btn waves-effect waves-light">準備完了</button>
+      <form class="exit" id="exitf" action="/" method="get">
+      <button id="exit" class="btn waves-effect waves-light exit">退出</button></form>
+    </div>
+    <div class="wrapper result" id="result">
+      <ul id="doraft">
+        <p id="orderNu">　</p>
+        <p id="orderName">　</p>
+        <p id="orderNomine">　</p>
+      </ul>
+    </div>
+    <a href="#content" class="inline" id="modal" style="display: none">モーダルを開く</a>
+    <div class="popupWrapper">
+      <p class="subjectReady">準備完了ボタンを押してください</p>
+      <p id="orderNum" class="subject">1</p>
+      <p class="subject">巡目</p></br>
+      <p class="subject">指名を選択してください</p>
+      <p id="get"></p>
+    </div>
+    <div class="weapper nomination_btn">
+      <button id="nomination" class="btn waves-effect waves-light" disabled>指名</button>
+      <div id="content" style="display: none;">
+        <!-- <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+        <div class="twitter">
+          <a href="/twitter.com/share" class="twitter-share-button" data-size="large" data-url="url"
+            data-text="ドラフト会議獲得選手">Tweet</a>
+        </div>-->
+      </div>
+    </div>
+    <div class="wrapper choice" id="choice">
+      <ul class="drafted_list" id="drafted_list">
+      </ul>
+    </div>
+    <div class="wrapper dorafted">
+      <div class="drafted_member">
+        <ul>
+        </ul>
+      </div>
+      <div class="table" id="draft_result">
+        <table>
+          <caption><strong>ドラフト結果</strong></caption>
+          <thead>
+            <tr id="member_list2"></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th id="table1">1</th>
+            </tr>
+            <tr>
+              <th id="table2">2</th>
+            </tr>
+            <tr>
+              <th id="table3">3</th>
+            </tr>
+            <tr>
+              <th id="table4">4</th>
+            </tr>
+            <tr>
+              <th id="table5">5</th>
+            </tr>
+            <tr>
+              <th id="table6">6</th>
+            </tr>
+            <tr>
+              <th id="table7">8</th>
+            </tr>
+            <tr>
+              <th id="table8">8</th>
+            </tr>
+            <tr>
+              <th id="table9">9</th>
+            </tr>
+            <tr>
+              <th id="table10">10</th>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script>
+    const socketio = io();
+    const FADEINTIME = 7000;
+    $(function () {
+      $(".inline").modaal({});
+      /*******ready******/
+      $('#ready').on('click', () => {
+        $("#ready").prop("disabled", true);
+        socketio.emit('ready');
+      });
+      /*********************/
+
+      /*******start******/
+      socketio.on('start', () => {
+        startGame();
+      });
+      /*********************/
+
+      /*******nomination******/
+      $('#nomination').on('click', () => {
+        $("#nomination").prop("disabled", true);
+        socketio.emit('nomination', $('.choiced').index('ul.drafted_list li'));
+      });
+      /*********************/
+
+      socketio.on('determination', (clientNum, list, a) => {
+        $("#nomination").prop("disabled", true);
+        $('#table1 td').remove();
+        commonAnime(a, list, clientNum);
+      });
+      socketio.on('reDoraft', (clientNum, list, a) => {
+        $("#nomination").prop("disabled", false);
+        $('#table1 td').remove();
+        commonAnime(a, list, clientNum);
+      });
+      socketio.on('already', (clientNum, list, a) => {
+        $("#nomination").prop("disabled", true);
+        $('#table1 td').remove();
+        commonAnime(a, list, clientNum);
+      });
+
+      socketio.on('determination2', (clientNum,list, a) => {
+        $("#nomination").prop("disabled", true);
+        $('#table1 td').remove();
+        commonAnime2(a, list, clientNum);
+      });
+      socketio.on('reDoraft2', (clientNum,list, a,) => {
+        $('#table1 td').remove();
+        makeAnime(a, list, clientNum);
+      });
+      socketio.on('already2', (clientNum,list, a) => {
+        $("#nomination").prop("disabled", true);
+        $('#table1 td').remove();
+        commonAnime2(a, list, clientNum);
+      });
+
+      socketio.on('create_draftedList', dl => {
+        $('#drafted_list li').remove();
+        $('#drafted_list').prepend(dl);
+        $('#drafted_list li').on('click', function () {
+          $("#drafted_list").find('li').removeClass("choiced");
+          $("#drafted_list li").eq(Array.prototype.indexOf.call(event.target.parentNode.querySelectorAll("li"), event.target)).addClass("choiced");
+        });
+      });
+
+      socketio.on('create_member', (client, client2) => {
+        $('#member_list li').remove();
+        $('#member_list').prepend(client);
+        $('#member_list2 th').remove();
+        $('#member_list2').prepend(client2);
+      });
+
+      const startGame = () => {
+        $("#nomination").prop("disabled", false);
+        $('.subjectReady').css("display", "none");
+        $('.subject').css("display", "inline");
+        $('.popupWrapper').addClass("show");
+      }
+      socketio.on('doraftedAlready', num => {
+        $("#drafted_list li").eq(num).addClass("doraftedAlready");
+        $("#drafted_list li").eq(num).removeClass("choiced");
+      });
+    });
+
+    $('.exit').on('click', () => {
+      if (window.confirm("退出してよろしいですか？")) {
+        socketio.emit('exit');
+      }else{
+        return false;
+      }
+    });
+
+    const commonAnime = (a, list, num) => {
+      exec(a, list).then(() => {
+        $("#nomination").prop("disabled", false);
+        $('#get').text("獲得しました！");
+        if (Number($("#orderNum").text()) + 1 > 10 || lackDoraftListNum(num)) {
+          viewResult();
+          socketio.emit('end');
+          return;
+        }
+      });
+    }
+    const commonAnime2 = (a, list, num) => {
+      exec2(a, list).then(() => {
+        $('#get').text("獲得しました！");
+      });
+    }
+    const makeAnime = (a, list, num) => {
+      exec2(a, list).then(() => {
+        $('#get').text("獲得てきませんでした");
+        $("#nomination").prop("disabled", false);
+      });
+    }
+    async function exec(a, list, num) {
+      try {
+        await func1(a);
+        await func2(a);
+        if (a.length > 2) {
+          await func3(a);
+          if (a.length > 3) {
+            await func4(a);
+            if (a.length > 4) {
+              await func5(a);
+            }
+          }
+        }
+        $("#orderNum").text(Number($("#orderNum").text()) + 1);
+        $(`#table${$("#orderNum").text() - 1}`).after(createDoraftedResult(list));
+      } catch (e) {
+        console.log(e);
+      }
+    }
+    async function exec2(a, list, num) {
+      try {
+        await func1(a);
+        await func2(a);
+        if (a.length > 2) {
+          await func3(a);
+          if (a.length > 3) {
+            await func4(a);
+            if (a.length > 4) {
+              await func5(a);
+            }
+          }
+        }
+      } catch (e) {
+        console.log(e);
+      }
+    }
+    const func1 = (a) => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          $("#orderNu").html($("#orderNum").text()+"巡目");
+          $("#orderName").html(a[0].name);
+          $("#orderNomine").html($("#drafted_list li").eq(a[0].doraft).text());
+          $('#doraft').addClass("show");
+          resolve();
+        }, FADEINTIME);
+      });
+    }
+    const func2 = (a) => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          $("#orderNu").html($("#orderNum").text()+"巡目");
+          $("#orderName").html(a[1].name);
+          $("#orderNomine").html($("#drafted_list li").eq(a[1].doraft).text());
+          $('#doraft').addClass("show");
+          resolve();
+        }, FADEINTIME);
+      });
+    }
+    const func3 = (a) => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          $("#orderNu").html($("#orderNum").text()+"巡目");
+          $("#orderName").html(a[2].name);
+          $("#orderNomine").html($("#drafted_list li").eq(a[2].doraft).text());
+          $('#doraft').addClass("show");
+          resolve();
+        }, FADEINTIME);
+      });
+    }
+    const func4 = (a) => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          $("#orderNu").html($("#orderNum").text()+"巡目");
+          $("#orderName").html(a[3].name);
+          $("#orderNomine").html($("#drafted_list li").eq(a[3].doraft).text());
+          $('#doraft').addClass("show");
+          resolve();
+        }, FADEINTIME);
+      });
+    }
+    const func5 = (a) => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          $("#orderNu").html($("#orderNum").text()+"巡目");
+          $("#orderName").html(a[4].name);
+          $("#orderNomine").html($("#drafted_list li").eq(a[4].doraft).text());
+          $('#doraft').addClass("show");
+          resolve();
+        }, FADEINTIME);
+      });
+    }
+    const createDoraftedResult = doraftList => {
+      let str_ = "";
+      doraftList.forEach(str => {
+        str_ += `<td>${$("#drafted_list li").eq(str).text()}</td>`;
+      });
+      return str_;
+    }
+
+    const lackDoraftListNum = clientNum => {
+      const num = Number(document.getElementById("drafted_list").childElementCount) - Number($(".doraftedAlready").length)
+      return clientNum > num ? true : false;
+    }
+    
+    const viewResult = () => {
+      let clone = document.getElementById("draft_result").firstElementChild.cloneNode(true);
+      document.getElementById("content").appendChild(clone, document.getElementById("content").firstChild);
+      let clone2 = document.getElementById("exitf").cloneNode(true);
+      document.getElementById("content").appendChild(clone2);
+      $("#modal")[0].click();
+    }
+  </script>
+
+</body>
+
+</html>

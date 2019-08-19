@@ -1,0 +1,53 @@
+h1{
+  text-align: center;
+  font-family: "Kokoro"; 
+}
+h2{
+  font-size: 2rem; 
+  font-family: "M PLUS Rounded 1c"; 
+}
+.all{
+  width: 100%;
+  height: 100%;
+}
+.wrapper{
+  text-align: center;
+  border-radius: 10px;
+}
+.wrapper.all{
+  margin-bottom: 3%;
+}
+.title{
+  display: inline-block;
+}
+.inputbox{
+  width: 80%;
+  margin-top: 3%;
+  display: inline-block;
+}
+.roomButton{
+  text-align: center;
+}
+#create_btn,#in_btn{
+  color: #ffffff;
+}
+.create{
+  width: 100%;
+  display: inline-block;
+  border: solid 1px #6075d3;
+  vertical-align: top;
+  margin-bottom: 3%; 
+}
+.in{
+  width: 100%;
+  display: inline-block;
+  border: solid 1px #6075d3;
+  vertical-align: top;
+  margin-bottom: 3%; 
+}
+.container{
+  text-align: center;
+}
+.howto{
+  text-align: left;
+}
