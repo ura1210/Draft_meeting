@@ -47,7 +47,7 @@ app.post('/room', function (req, res) {
         });
 
     } else {
-        io.of('/').in(socetIDtoInfo[socket.id].id).clients(function (error, clients) {
+        io.of('/').in(req.body.id).clients(function (error, clients) {
         if (RoomIDtoDoraftedList[req.body.id] === void 0 || RoomIDtoDoraftedList[req.body.id].status != "wait" || clients.length > 5) {
             res.render("./pages/index.ejs", {
                 msg: "部屋が存在しないか、既に進行中です。"
