@@ -7,6 +7,7 @@
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
   <script src="/materialize.js"></script>
   <script src="/modaal.min.js"></script>
+  <script src="/vue.js"></script>
   <link rel="stylesheet" href="/materialize.css">
   <link rel="stylesheet" href="/room.css">
   <link rel="stylesheet" href="/modaal.min.css">
@@ -24,10 +25,11 @@
           </ul>
         </span>
       </div>
-      <div class="col s9 pull-s3">
+      <div class="col s9 pull-s3" id="title">
         <span class="flow-text">
-          <h1 class="title"><%= title %>ドラフト会議</h1>
-        </span></div>
+          <h1 class="title">{{ title }} ドラフト会議</h1>
+        </span>
+      </div>
     </div>
     <div class="wrapper now_ch">
       <label>ニックネーム:</label>
@@ -36,7 +38,7 @@
       <p id="now_ch"><%= id %></p>
       <button id="ready" class="btn waves-effect waves-light">準備完了</button>
       <form class="exit" id="exitf" action="/" method="get">
-      <button id="exit" class="btn waves-effect waves-light exit">退出</button></form>
+        <button id="exit" class="btn waves-effect waves-light exit">退出</button></form>
     </div>
     <div class="wrapper result" id="result">
       <ul id="doraft">
@@ -45,7 +47,7 @@
         <p id="orderNomine">　</p>
       </ul>
     </div>
-    <a href="#content" class="inline" id="modal" style="display: none">モーダルを開く</a>
+
     <div class="popupWrapper">
       <p class="subjectReady">準備完了ボタンを押してください</p>
       <p id="orderNum" class="subject">1</p>
@@ -55,6 +57,7 @@
     </div>
     <div class="weapper nomination_btn">
       <button id="nomination" class="btn waves-effect waves-light" disabled>指名</button>
+      <a href="#content" class="inline" id="modal" style="display: none">モーダルを開く</a>
       <div id="content" style="display: none;">
         <!-- <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
         <div class="twitter">
@@ -116,9 +119,17 @@
   </div>
   <script>
     const socketio = io();
-    const FADEINTIME = 7000;
+    const FADEINTIME = 6500;
     $(function () {
       $(".inline").modaal({});
+
+      const app = new Vue({
+        el: '#title',
+        data: {
+          title: ""
+        },
+      })
+
       /*******ready******/
       $('#ready').on('click', () => {
         $("#ready").prop("disabled", true);
@@ -155,24 +166,29 @@
         commonAnime(a, list, clientNum);
       });
 
-      socketio.on('determination2', (clientNum,list, a) => {
+      socketio.on('determination2', (clientNum, list, a) => {
         $("#nomination").prop("disabled", true);
         $('#table1 td').remove();
         commonAnime2(a, list, clientNum);
       });
-      socketio.on('reDoraft2', (clientNum,list, a,) => {
+      socketio.on('reDoraft2', (clientNum, list, a) => {
         $('#table1 td').remove();
         makeAnime(a, list, clientNum);
       });
-      socketio.on('already2', (clientNum,list, a) => {
+      socketio.on('already2', (clientNum, list, a) => {
         $("#nomination").prop("disabled", true);
         $('#table1 td').remove();
         commonAnime2(a, list, clientNum);
       });
 
+      socketio.on('reset', () => {
+        $("#ready").prop("disabled", false);
+      });
+
       socketio.on('create_draftedList', dl => {
+        app.title = dl.title;
         $('#drafted_list li').remove();
-        $('#drafted_list').prepend(dl);
+        $('#drafted_list').prepend(dl.list);
         $('#drafted_list li').on('click', function () {
           $("#drafted_list").find('li').removeClass("choiced");
           $("#drafted_list li").eq(Array.prototype.indexOf.call(event.target.parentNode.querySelectorAll("li"), event.target)).addClass("choiced");
@@ -201,7 +217,7 @@
     $('.exit').on('click', () => {
       if (window.confirm("退出してよろしいですか？")) {
         socketio.emit('exit');
-      }else{
+      } else {
         return false;
       }
     });
@@ -224,7 +240,7 @@
     }
     const makeAnime = (a, list, num) => {
       exec2(a, list).then(() => {
-        $('#get').text("獲得てきませんでした");
+        $('#get').text("獲得できませんでした");
         $("#nomination").prop("disabled", false);
       });
     }
@@ -264,10 +280,11 @@
         console.log(e);
       }
     }
+
     const func1 = (a) => {
       return new Promise((resolve, reject) => {
         setTimeout(() => {
-          $("#orderNu").html($("#orderNum").text()+"巡目");
+          $("#orderNu").html($("#orderNum").text() + "巡目");
           $("#orderName").html(a[0].name);
           $("#orderNomine").html($("#drafted_list li").eq(a[0].doraft).text());
           $('#doraft').addClass("show");
@@ -278,7 +295,7 @@
     const func2 = (a) => {
       return new Promise((resolve, reject) => {
         setTimeout(() => {
-          $("#orderNu").html($("#orderNum").text()+"巡目");
+          $("#orderNu").html($("#orderNum").text() + "巡目");
           $("#orderName").html(a[1].name);
           $("#orderNomine").html($("#drafted_list li").eq(a[1].doraft).text());
           $('#doraft').addClass("show");
@@ -289,7 +306,7 @@
     const func3 = (a) => {
       return new Promise((resolve, reject) => {
         setTimeout(() => {
-          $("#orderNu").html($("#orderNum").text()+"巡目");
+          $("#orderNu").html($("#orderNum").text() + "巡目");
           $("#orderName").html(a[2].name);
           $("#orderNomine").html($("#drafted_list li").eq(a[2].doraft).text());
           $('#doraft').addClass("show");
@@ -300,7 +317,7 @@
     const func4 = (a) => {
       return new Promise((resolve, reject) => {
         setTimeout(() => {
-          $("#orderNu").html($("#orderNum").text()+"巡目");
+          $("#orderNu").html($("#orderNum").text() + "巡目");
           $("#orderName").html(a[3].name);
           $("#orderNomine").html($("#drafted_list li").eq(a[3].doraft).text());
           $('#doraft').addClass("show");
@@ -311,7 +328,7 @@
     const func5 = (a) => {
       return new Promise((resolve, reject) => {
         setTimeout(() => {
-          $("#orderNu").html($("#orderNum").text()+"巡目");
+          $("#orderNu").html($("#orderNum").text() + "巡目");
           $("#orderName").html(a[4].name);
           $("#orderNomine").html($("#drafted_list li").eq(a[4].doraft).text());
           $('#doraft').addClass("show");
@@ -331,7 +348,7 @@
       const num = Number(document.getElementById("drafted_list").childElementCount) - Number($(".doraftedAlready").length)
       return clientNum > num ? true : false;
     }
-    
+
     const viewResult = () => {
       let clone = document.getElementById("draft_result").firstElementChild.cloneNode(true);
       document.getElementById("content").appendChild(clone, document.getElementById("content").firstChild);
