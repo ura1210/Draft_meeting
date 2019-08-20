@@ -155,17 +155,13 @@
         $('#table1 td').remove();
         commonAnime(a, list, clientNum);
       });
-      socketio.on('reDoraft', (clientNum, list, a) => {
-        $("#nomination").prop("disabled", false);
-        $('#table1 td').remove();
-        commonAnime(a, list, clientNum);
-      });
       socketio.on('already', (clientNum, list, a) => {
         $("#nomination").prop("disabled", true);
         $('#table1 td').remove();
         commonAnime(a, list, clientNum);
       });
 
+     /*********************/
       socketio.on('determination2', (clientNum, list, a) => {
         $("#nomination").prop("disabled", true);
         $('#table1 td').remove();
@@ -223,9 +219,9 @@
     });
 
     const commonAnime = (a, list, num) => {
-      exec(a, list).then(() => {
-        $("#nomination").prop("disabled", false);
+      commonAnimeExecEND(a, list).then(() => {
         $('#get').text("獲得しました！");
+        $("#nomination").prop("disabled", false);
         if (Number($("#orderNum").text()) > 10 || lackDoraftListNum(num)) {
           viewResult();
           socketio.emit('end');
@@ -233,29 +229,32 @@
         }
       });
     }
-    const commonAnime2 = (a, list, num) => {
-      exec2(a, list).then(() => {
+    const commonAnime2 = (a, list) => {
+      commonAnimeExec(a, list).then(() => {
         $('#get').text("獲得しました！");
       });
     }
-    const makeAnime = (a, list, num) => {
-      exec2(a, list).then(() => {
+    const makeAnime = (a, list) => {
+      commonAnimeExec(a, list).then(() => {
         $('#get').text("獲得できませんでした");
         $("#nomination").prop("disabled", false);
       });
     }
-    async function exec(a, list, num) {
+
+    async function commonAnimeExec(a, list, num) {
       try {
-        await func1(a);
-        await func2(a);
-        if (a.length > 2) {
-          await func3(a);
-          if (a.length > 3) {
-            await func4(a);
-            if (a.length > 4) {
-              await func5(a);
-            }
-          }
+        for(let i = 0; i < a.length;i++){
+          await func(a, i);
+        }
+      } catch (e) {
+        console.log(e);
+      }
+    }
+
+    async function commonAnimeExecEND(a, list, num) {
+      try {
+        for(let i = 0; i < a.length;i++){
+          await func(a, i);
         }
         $("#orderNum").text(Number($("#orderNum").text()) + 1);
         $(`#table${$("#orderNum").text() - 1}`).after(createDoraftedResult(list));
@@ -263,79 +262,19 @@
         console.log(e);
       }
     }
-    async function exec2(a, list, num) {
-      try {
-        await func1(a);
-        await func2(a);
-        if (a.length > 2) {
-          await func3(a);
-          if (a.length > 3) {
-            await func4(a);
-            if (a.length > 4) {
-              await func5(a);
-            }
-          }
-        }
-      } catch (e) {
-        console.log(e);
-      }
-    }
 
-    const func1 = (a) => {
+    const func = (a, i) => {
       return new Promise((resolve, reject) => {
         setTimeout(() => {
           $("#orderNu").html($("#orderNum").text() + "巡目");
-          $("#orderName").html(a[0].name);
+          $("#orderName").html(a[i].name);
           $("#orderNomine").html($("#drafted_list li").eq(a[0].doraft).text());
           $('#doraft').addClass("show");
           resolve();
         }, FADEINTIME);
       });
     }
-    const func2 = (a) => {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          $("#orderNu").html($("#orderNum").text() + "巡目");
-          $("#orderName").html(a[1].name);
-          $("#orderNomine").html($("#drafted_list li").eq(a[1].doraft).text());
-          $('#doraft').addClass("show");
-          resolve();
-        }, FADEINTIME);
-      });
-    }
-    const func3 = (a) => {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          $("#orderNu").html($("#orderNum").text() + "巡目");
-          $("#orderName").html(a[2].name);
-          $("#orderNomine").html($("#drafted_list li").eq(a[2].doraft).text());
-          $('#doraft').addClass("show");
-          resolve();
-        }, FADEINTIME);
-      });
-    }
-    const func4 = (a) => {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          $("#orderNu").html($("#orderNum").text() + "巡目");
-          $("#orderName").html(a[3].name);
-          $("#orderNomine").html($("#drafted_list li").eq(a[3].doraft).text());
-          $('#doraft').addClass("show");
-          resolve();
-        }, FADEINTIME);
-      });
-    }
-    const func5 = (a) => {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          $("#orderNu").html($("#orderNum").text() + "巡目");
-          $("#orderName").html(a[4].name);
-          $("#orderNomine").html($("#drafted_list li").eq(a[4].doraft).text());
-          $('#doraft').addClass("show");
-          resolve();
-        }, FADEINTIME);
-      });
-    }
+
     const createDoraftedResult = doraftList => {
       let str_ = "";
       doraftList.forEach(str => {

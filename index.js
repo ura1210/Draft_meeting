@@ -39,8 +39,7 @@ app.post('/room', function (req, res) {
             } else {
                 res.render("./pages/room.ejs", {
                     name: req.body.name,
-                    id: req.body.id,
-                    title: req.body.title
+                    id: req.body.id
                 });
                 RoomIDtoDoraftedList[req.body.id] = { list: createDoraftedListHTML(req.body.drafted), status: "wait", title: req.body.title }
             }
@@ -48,7 +47,7 @@ app.post('/room', function (req, res) {
 
     } else {
         io.of('/').in(req.body.id).clients(function (error, clients) {
-            if (RoomIDtoDoraftedList[req.body.id] === void 0 || RoomIDtoDoraftedList[req.body.id].status != "wait" || clients.length > 5) {
+            if (RoomIDtoDoraftedList[req.body.id] === void 0 || RoomIDtoDoraftedList[req.body.id].status != "wait") {
                 res.render("./pages/index.ejs", {
                     msg: "部屋が存在しないか、既に進行中です。"
                 });
@@ -165,8 +164,8 @@ io.on('connection', function (socket) {
                 }
 
                 for (let i = 0; i < draftStatus.length; i++) {
-                    if (draftStatus[result2[i]] !== "今回決定") {
-                        draftStatus[result2[i]] = "再指名";
+                    if (draftStatus[i] !== "今回決定") {
+                        draftStatus[i] = "再指名";
                     }
                 }
 
