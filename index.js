@@ -48,18 +48,18 @@ app.post('/room', function (req, res) {
 
     } else {
         io.of('/').in(req.body.id).clients(function (error, clients) {
-        if (RoomIDtoDoraftedList[req.body.id] === void 0 || RoomIDtoDoraftedList[req.body.id].status != "wait" || clients.length > 5) {
-            res.render("./pages/index.ejs", {
-                msg: "部屋が存在しないか、既に進行中です。"
+            if (RoomIDtoDoraftedList[req.body.id] === void 0 || RoomIDtoDoraftedList[req.body.id].status != "wait" || clients.length > 5) {
+                res.render("./pages/index.ejs", {
+                    msg: "部屋が存在しないか、既に進行中です。"
+                });
+                return;
+            }
+            res.render("./pages/room.ejs", {
+                name: req.body.name,
+                id: req.body.id,
+                title: req.body.title
             });
-            return;
-        }
-        res.render("./pages/room.ejs", {
-            name: req.body.name,
-            id: req.body.id,
-            title: req.body.title
         });
-    });
     }
 
     io.once('connection', function (socket) {
@@ -117,91 +117,84 @@ io.on('connection', function (socket) {
                 //全員選択した
                 RoomIDtoReady[roomID] = 0;
 
-                let dorafthairetu = []
+                let draftsChoiceList = []
                 for (let i = 0; i < clients.length; i++) {
-                    dorafthairetu[i] = doraftChoiceTemp[clients[i]]
+                    draftsChoiceList[i] = doraftChoiceTemp[clients[i]]
                 }
                 //配列つくる
-                let doraftStatus = []
+                let draftStatus = []
                 for (let i = 0; i < clients.length; i++) {
-                    doraftStatus[i] = "決定済み";
+                    draftStatus[i] = "決定済み";
                 }
 
                 //競合なしなら決定
-                let b1 = dorafthairetu.filter((val, idx, self) => {
+                let b1 = draftsChoiceList.filter((val, idx, self) => {
                     return self.indexOf(val) === self.lastIndexOf(val);
                 });
                 for (let i = 0; i < b1.length; i++) {
-                    doraftStatus[dorafthairetu.indexOf(b1[i])] = "今回決定";
+                    draftStatus[draftsChoiceList.indexOf(b1[i])] = "今回決定";
                 }
 
                 //競合してる配列
-                var d = doraftStatus.filter(function (x, i, self) {
+                let d = draftsChoiceList.filter(function (x, i, self) {
                     return self.indexOf(x) === i && i !== self.lastIndexOf(x);
                 });
 
                 //競合
-                let a = [];
-                for (let i = 0; i < doraftStatus.length; i++) {
-                    a[i] = (
+                let clientInfo = [];
+                for (let i = 0; i < draftStatus.length; i++) {
+                    clientInfo[i] = (
                         {
                             name: socetIDtoInfo[clients[i]].name,
                             socketID: clients[i],
-                            doraft: dorafthairetu[i]
+                            doraft: draftsChoiceList[i]
                         }
                     );
                 }
-                
+
                 for (let i = 0; i < d.length; i++) {
-                    const result = doraftStatus.reduce(function (accumulator, currentValue, index) {
+                    const result = draftsChoiceList.reduce(function (accumulator, currentValue, index) {
                         if (currentValue === d[i]) {
                             accumulator.push(index);
                         }
                         return accumulator;
                     }, [])
                     const random = result[Math.floor(Math.random() * result.length)];
-                    const result2 = doraftStatus.reduce(function (accumulator, currentValue, index) {
-                        if (currentValue != random) {
-                            accumulator.push(index);
-                        }
-                        return accumulator;
-                    }, [])
-                    for (let i = 0; i < result2.length; i++) {
-                        if (doraftStatus[result2[i]] !== "今回決定") {
-                            doraftStatus[result2[i]] = "再指名";
-                        }
-                    }
-                    doraftStatus[random] = "今回決定";
-                }
-                let count = 0;
-                for (let i = 0; i < doraftStatus.length; i++) {
-                    if (doraftStatus[i] === "再指名") {
-                        count++;
-                    }
-                    RoomIDtoClientNum[socetIDtoInfo[socket.id].id] = count;
+                    draftStatus[random] = "今回決定";
+
                 }
 
-                for (let i = 0; i < doraftStatus.length; i++) {
-                    io.to(socetIDtoInfo[socket.id].id).emit('doraftedAlready', dorafthairetu[i]);
+                for (let i = 0; i < draftStatus.length; i++) {
+                    if (draftStatus[result2[i]] !== "今回決定") {
+                        draftStatus[result2[i]] = "再指名";
+                    }
+                }
+
+                const count = draftStatus.filter(x => {
+                    return x === "再指名"
+                }).length
+
+                RoomIDtoClientNum[socetIDtoInfo[socket.id].id] = count;
+
+                for (let i = 0; i < draftStatus.length; i++) {
+                    io.to(socetIDtoInfo[socket.id].id).emit('doraftedAlready', draftsChoiceList[i]);
                     if (RoomIDtoClientNum[socetIDtoInfo[socket.id].id] === 0) {
                         //一巡終了
-                        if (i == doraftStatus.length - 1) {
+                        if (i == draftStatus.length - 1) {
                             RoomIDtoClientNum[socetIDtoInfo[socket.id].id] = clients.length;
                         }
-                        if (doraftStatus[i] === "今回決定") {
-                            io.to(a[i].socketID).emit('determination', clients.length, dorafthairetu, a);
-                        } else if (doraftStatus[i] === "再指名") {
-                            io.to(a[i].socketID).emit('reDoraft', clients.length, dorafthairetu, a);
+                        if (draftStatus[i] === "今回決定") {
+                            io.to(clientInfo[i].socketID).emit('determination', clients.length, draftsChoiceList, clientInfo);
                         } else {
-                            io.to(a[i].socketID).emit('already', clients.length, dorafthairetu, a);
+                            io.to(clientInfo[i].socketID).emit('already', clients.length, draftsChoiceList, clientInfo);
                         }
                     } else {
-                        if (doraftStatus[i] === "今回決定") {
-                            io.to(a[i].socketID).emit('determination2', clients.length, dorafthairetu, a);
-                        } else if (doraftStatus[i] === "再指名") {
-                            io.to(a[i].socketID).emit('reDoraft2', clients.length, dorafthairetu, a);
+                        if (draftStatus[i] === "今回決定") {
+                            io.to(clientInfo[i].socketID).emit('determination2', clients.length, draftsChoiceList, clientInfo);
+                        } else if (draftStatus[i] === "再指名") {
+                            io.to(clientInfo[i].socketID).emit('reDoraft2', clients.length, draftsChoiceList, clientInfo);
                         } else {
-                            io.to(a[i].socketID).emit('already2', clients.length, dorafthairetu, a);
+                            io.to(clientInfo[i].socketID).emit('already2', clients.length, draftsChoiceList, clientInfo);
                         }
                     }
                 }

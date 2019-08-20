@@ -226,7 +226,7 @@
       exec(a, list).then(() => {
         $("#nomination").prop("disabled", false);
         $('#get').text("獲得しました！");
-        if (Number($("#orderNum").text()) + 1 > 10 || lackDoraftListNum(num)) {
+        if (Number($("#orderNum").text()) > 10 || lackDoraftListNum(num)) {
           viewResult();
           socketio.emit('end');
           return;
