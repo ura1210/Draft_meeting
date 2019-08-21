@@ -165,6 +165,9 @@ td,th{
 .exit{
   display: inline;
 }
+.endNum{
+  color:red;
+}
 @keyframes fadeIn {
   0% {
     opacity: 0;

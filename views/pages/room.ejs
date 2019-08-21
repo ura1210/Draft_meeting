@@ -101,7 +101,7 @@
               <th id="table6">6</th>
             </tr>
             <tr>
-              <th id="table7">8</th>
+              <th id="table7">7</th>
             </tr>
             <tr>
               <th id="table8">8</th>
@@ -120,6 +120,7 @@
   <script>
     const socketio = io();
     const FADEINTIME = 6500;
+    let endNum = 10;
     $(function () {
       $(".inline").modaal({});
 
@@ -181,8 +182,10 @@
         $("#ready").prop("disabled", false);
       });
 
-      socketio.on('create_draftedList', dl => {
+      socketio.once('create_draftedList', dl => {
         app.title = dl.title;
+        endNum = dl.end;
+        $(`#table${dl.end}`).addClass("endNum");
         $('#drafted_list li').remove();
         $('#drafted_list').prepend(dl.list);
         $('#drafted_list li').on('click', function () {
@@ -222,7 +225,7 @@
       commonAnimeExecEND(a, list).then(() => {
         $('#get').text("獲得しました！");
         $("#nomination").prop("disabled", false);
-        if (Number($("#orderNum").text()) > 10 || lackDoraftListNum(num)) {
+        if (Number($("#orderNum").text()) > endNum || lackDoraftListNum(num)) {
           viewResult();
           socketio.emit('end');
           return;
@@ -268,7 +271,7 @@
         setTimeout(() => {
           $("#orderNu").html($("#orderNum").text() + "巡目");
           $("#orderName").html(a[i].name);
-          $("#orderNomine").html($("#drafted_list li").eq(a[0].doraft).text());
+          $("#orderNomine").html($("#drafted_list li").eq(a[i].doraft).text());
           $('#doraft').addClass("show");
           resolve();
         }, FADEINTIME);

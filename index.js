@@ -39,9 +39,15 @@ app.post('/room', function (req, res) {
             } else {
                 res.render("./pages/room.ejs", {
                     name: req.body.name,
-                    id: req.body.id
+                    id: req.body.id,
+                    title: req.body.title,
+                    end: req.body.end
                 });
-                RoomIDtoDoraftedList[req.body.id] = { list: createDoraftedListHTML(req.body.drafted), status: "wait", title: req.body.title }
+                RoomIDtoDoraftedList[req.body.id] = { list: createDoraftedListHTML(req.body.drafted), 
+                    status: "wait", 
+                    title: req.body.title,
+                    end: req.body.end
+                }
             }
         });
 
@@ -56,7 +62,8 @@ app.post('/room', function (req, res) {
             res.render("./pages/room.ejs", {
                 name: req.body.name,
                 id: req.body.id,
-                title: req.body.title
+                title: req.body.title,
+                end: req.body.end
             });
         });
     }
@@ -86,7 +93,7 @@ app.post('/room', function (req, res) {
             });
         });
         socket.on('end', () => {
-            RoomIDtoDoraftedList[socetIDtoInfo[socket.id].id] = null;
+            RoomIDtoDoraftedList[socetIDtoInfo[socket.id].id] = undefined;
         });
     });
 });
@@ -98,7 +105,7 @@ io.on('connection', function (socket) {
         const roomID = Object.keys(socket.rooms)[1];
         RoomIDtoReady[roomID]++;
         io.of('/').in(roomID).clients((error, clients) => {
-            if (clients.length == RoomIDtoReady[roomID]) {
+            if (clients.length === RoomIDtoReady[roomID]) {
                 //全員Readyを押した
                 RoomIDtoDoraftedList[roomID].status = "start";
                 RoomIDtoReady[roomID] = 0;

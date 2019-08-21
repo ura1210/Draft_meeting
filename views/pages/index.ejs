@@ -3,10 +3,8 @@
 
 <head>
   <title>ドラフトごっこ(β)</title>
-  <script src="../../socket.io/socket.io.js"></script>
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
   <link href="https://fonts.googleapis.com/earlyaccess/kokoro.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/earlyaccess/hannari.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c" rel="stylesheet">
   <script src="/materialize.js"></script>
   <link rel="stylesheet" href="/materialize.css">
@@ -19,7 +17,7 @@
       <h1>ドラフトごっこ(β)</h1>
     </div>
     <div class="wrapper inputbox">
-      <div class="create" id="create_room_wrapper row">
+      <div class="create row">
         <h2>部屋を作成</h2>
         <form id="create_form" action="/room" method="POST">
           <div class="row">
@@ -29,15 +27,30 @@
             </div>
             <div class="input-field col s6">
               <label>部屋ID</label>
-              <input type="text" class="validate" id="careate_channel" autocomplete="off" name="id" required />
+              <input type="text" class="validate" autocomplete="off" name="id" required />
             </div>
             <div class="input-field col s6">
               <label>タイトル</label>
-              <input type="text" id="careate_title" autocomplete="off" name="title" />
+              <input type="text" autocomplete="off" name="title" />
             </div>
+            <div class="input-field col s6">
+                <select name="end" form="create_form">
+                    <option value="10">10</option>
+                    <option value="9">9</option>
+                    <option value="8">8</option>
+                    <option value="7">7</option>
+                    <option value="6">6</option>
+                    <option value="5">5</option>
+                    <option value="4">4</option>
+                    <option value="3">3</option>
+                    <option value="2">2</option>
+                    <option value="1">1</option>
+                </select>
+                <label>終了巡目数</label>
+              </div>
             <div class="input-field col s12">
               <label>ドラフト候補一覧</label>
-              <textarea name="drafted" class="materialize-textarea" rows="8" cols="50" placeholder=""
+              <textarea name="drafted" class="materialize-textarea" rows="8" cols="50"
                 required></textarea>
             </div>
           </div>
@@ -70,23 +83,22 @@
         </form>
       </div>
     </div>
-  
-  <div class="container howto">
-    <h3>遊び方</h3>
-    <ol>
-      <li>ニックネーム、部屋ID、タイトル、ドラフト候補を入力して部屋を作成。ドラフト候補は一つを一行づつ入力してください。
-        </br>または既に存在する部屋にニックネームと部屋IDを入力して入室</li>
-      <li>メンバーが揃って準備ができたらREADYボタンをクリック</li>
-      <li>獲得したいドラフト候補を選択して指名ボタンをクリック</li>
-    </ol>
-    <h3>ルール</h3>
-    <ul>
-      <li>　同一順目で競合した場合、指名者内から抽選し、抽選負けの場合は再指名</li>
-      <li>全員が1人獲得確定したら1順終了</li>
-      <li>10巡目終了、または参加人数よりドラフト候補が少なくなったら終了</li>
-    </ul>
+    <div class="container howto">
+      <h3>遊び方</h3>
+      <ol>
+        <li>ニックネーム、部屋ID、タイトル、ドラフト候補を入力して部屋を作成。ドラフト候補は一つを一行づつ入力してください。
+          </br>または既に存在する部屋にニックネームと部屋IDを入力して入室</li>
+        <li>メンバーが揃って準備ができたらREADYボタンをクリック</li>
+        <li>獲得したいドラフト候補を選択して指名ボタンをクリック</li>
+      </ol>
+      <h3>ルール</h3>
+      <ul>
+        <li>　同一順目で競合した場合、指名者内から抽選し、抽選負けの場合は再指名</li>
+        <li>全員が1人獲得確定したら1順終了</li>
+        <li>設定した終了巡目数まで指名、または参加人数よりドラフト候補が少なくなったら終了</li>
+      </ul>
+    </div>
   </div>
-</div>
   <footer class="page-footer">
     <div class="footer-copyright">
       <div class="container">
@@ -97,8 +109,10 @@
   </footer>
 
   <script>
-    const socketio = io();
-     
+  document.addEventListener('DOMContentLoaded', function() {
+      M.FormSelect.init(document.querySelectorAll('select'));
+  });
+
   </script>
 </body>
 
