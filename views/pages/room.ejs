@@ -6,11 +6,9 @@
   <script src="../../socket.io/socket.io.js"></script>
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
   <script src="/materialize.js"></script>
-  <script src="/modaal.min.js"></script>
   <script src="/vue.js"></script>
   <link rel="stylesheet" href="/materialize.css">
   <link rel="stylesheet" href="/room.css">
-  <link rel="stylesheet" href="/modaal.min.css">
 </head>
 
 <body>
@@ -36,9 +34,10 @@
       <p id="name"><%= name %></p>
       <label>部屋ID:</label>
       <p id="now_ch"><%= id %></p>
-      <button id="ready" class="btn waves-effect waves-light">準備完了</button>
+      <button id="ready" class="btn waves-effect waves-light" >スタート</button>
       <form class="exit" id="exitf" action="/" method="get">
-        <button id="exit" class="btn waves-effect waves-light exit">退出</button></form>
+        <button id="exit" class="btn waves-effect waves-light exit">退出</button>
+      </form>
     </div>
     <div class="wrapper result" id="result">
       <ul id="doraft">
@@ -49,7 +48,6 @@
     </div>
 
     <div class="popupWrapper">
-      <p class="subjectReady">準備完了ボタンを押してください</p>
       <p id="orderNum" class="subject">1</p>
       <p class="subject">巡目</p></br>
       <p class="subject">指名を選択してください</p>
@@ -57,248 +55,274 @@
     </div>
     <div class="weapper nomination_btn">
       <button id="nomination" class="btn waves-effect waves-light" disabled>指名</button>
-      <a href="#content" class="inline" id="modal" style="display: none">モーダルを開く</a>
-      <div id="content" style="display: none;">
+
+      <!-- Modal Trigger -->
+      <button data-target="modal1" class="btn modal-trigger" id="modalbtn" style="display: none">Modal</button>
+      <!-- Modal Structure -->
+      <div id="modal1" class="modal">
+        <div id="modal-content" class="modal-content">
+        </div>
+        <div class="modal-footer">
+            <form class="exit" action="/" method="get">
+              <button class="btn waves-effect waves-light exit">退出</button>
+            </form>
+        </div>
         <!-- <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
         <div class="twitter">
           <a href="/twitter.com/share" class="twitter-share-button" data-size="large" data-url="url"
             data-text="ドラフト会議獲得選手">Tweet</a>
         </div>-->
       </div>
-    </div>
-    <div class="wrapper choice" id="choice">
-      <ul class="drafted_list" id="drafted_list">
-      </ul>
-    </div>
-    <div class="wrapper dorafted">
-      <div class="drafted_member">
-        <ul>
+
+      <div class="wrapper choice" id="choice">
+        <ul class="drafted_list" id="drafted_list">
         </ul>
       </div>
-      <div class="table" id="draft_result">
-        <table>
-          <caption><strong>ドラフト結果</strong></caption>
-          <thead>
-            <tr id="member_list2"></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th id="table1">1</th>
-            </tr>
-            <tr>
-              <th id="table2">2</th>
-            </tr>
-            <tr>
-              <th id="table3">3</th>
-            </tr>
-            <tr>
-              <th id="table4">4</th>
-            </tr>
-            <tr>
-              <th id="table5">5</th>
-            </tr>
-            <tr>
-              <th id="table6">6</th>
-            </tr>
-            <tr>
-              <th id="table7">7</th>
-            </tr>
-            <tr>
-              <th id="table8">8</th>
-            </tr>
-            <tr>
-              <th id="table9">9</th>
-            </tr>
-            <tr>
-              <th id="table10">10</th>
-            </tr>
-          </tbody>
-        </table>
+      <div class="wrapper dorafted">
+        <div class="drafted_member">
+          <ul>
+          </ul>
+        </div>
+        <div class="table" id="draft_result">
+          <table>
+            <caption><strong>ドラフト結果</strong></caption>
+            <thead>
+              <tr id="member_list2"></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th id="table1">1</th>
+              </tr>
+              <tr>
+                <th id="table2">2</th>
+              </tr>
+              <tr>
+                <th id="table3">3</th>
+              </tr>
+              <tr>
+                <th id="table4">4</th>
+              </tr>
+              <tr>
+                <th id="table5">5</th>
+              </tr>
+              <tr>
+                <th id="table6">6</th>
+              </tr>
+              <tr>
+                <th id="table7">7</th>
+              </tr>
+              <tr>
+                <th id="table8">8</th>
+              </tr>
+              <tr>
+                <th id="table9">9</th>
+              </tr>
+              <tr>
+                <th id="table10">10</th>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </div>
-  <script>
-    const socketio = io();
-    const FADEINTIME = 6500;
-    let endNum = 10;
-    $(function () {
-      $(".inline").modaal({});
+    <script>
+      const socketio = io();
+      const FADEINTIME = 6500;
+      let endNum = 10;
 
       const app = new Vue({
-        el: '#title',
-        data: {
-          title: ""
-        },
-      })
+          el: '#title',
+          data: {
+            title: ""
+          },
+        })
 
-      /*******ready******/
-      $('#ready').on('click', () => {
-        $("#ready").prop("disabled", true);
-        socketio.emit('ready');
-      });
-      /*********************/
+      $(function () {
 
-      /*******start******/
-      socketio.on('start', () => {
-        startGame();
-      });
-      /*********************/
+      /*******host******/
+      socketio.on('host', () => {
+        $("#ready").css("display", "inline");
+        });
+        /*********************/
 
-      /*******nomination******/
-      $('#nomination').on('click', () => {
-        $("#nomination").prop("disabled", true);
-        socketio.emit('nomination', $('.choiced').index('ul.drafted_list li'));
-      });
-      /*********************/
+        /*******ready******/
+        $('#ready').on('click', () => {
+          $("#ready").prop("disabled", true);
+          socketio.emit('ready');
+        });
+        /*********************/
 
-      socketio.on('determination', (clientNum, list, a) => {
-        $("#nomination").prop("disabled", true);
-        $('#table1 td').remove();
-        commonAnime(a, list, clientNum);
-      });
-      socketio.on('already', (clientNum, list, a) => {
-        $("#nomination").prop("disabled", true);
-        $('#table1 td').remove();
-        commonAnime(a, list, clientNum);
-      });
+        /*******start******/
+        socketio.on('start', () => {
+          startGame();
+        });
+        /*********************/
 
-     /*********************/
-      socketio.on('determination2', (clientNum, list, a) => {
-        $("#nomination").prop("disabled", true);
-        $('#table1 td').remove();
-        commonAnime2(a, list, clientNum);
-      });
-      socketio.on('reDoraft2', (clientNum, list, a) => {
-        $('#table1 td').remove();
-        makeAnime(a, list, clientNum);
-      });
-      socketio.on('already2', (clientNum, list, a) => {
-        $("#nomination").prop("disabled", true);
-        $('#table1 td').remove();
-        commonAnime2(a, list, clientNum);
-      });
+        /*******nomination******/
+        $('#nomination').on('click', () => {
+          $("#nomination").prop("disabled", true);
+          socketio.emit('nomination', $('.choiced').index('ul.drafted_list li'));
+        });
+        /*********************/
 
-      socketio.on('reset', () => {
-        $("#ready").prop("disabled", false);
-      });
+        socketio.on('determination', (clientNum, list, a) => {
+          $("#nomination").prop("disabled", true);
+          $('#table1 td').remove();
+          commonAnime(a, list, clientNum);
+          console.log("win");
+        });
+        socketio.on('already', (clientNum, list, a) => {
+          $("#nomination").prop("disabled", true);
+          $('#table1 td').remove();
+          commonAnime(a, list, clientNum);
+        });
 
-      socketio.once('create_draftedList', dl => {
-        app.title = dl.title;
-        endNum = dl.end;
-        $(`#table${dl.end}`).addClass("endNum");
-        $('#drafted_list li').remove();
-        $('#drafted_list').prepend(dl.list);
-        $('#drafted_list li').on('click', function () {
-          $("#drafted_list").find('li').removeClass("choiced");
-          $("#drafted_list li").eq(Array.prototype.indexOf.call(event.target.parentNode.querySelectorAll("li"), event.target)).addClass("choiced");
+        /*********************/
+        socketio.on('determination2', (clientNum, list, a) => {
+          $("#nomination").prop("disabled", true);
+          $('#table1 td').remove();
+          commonAnime2(a, list, clientNum);
+          console.log("win2");
+        });
+        socketio.on('reDoraft2', (clientNum, list, a) => {
+          $('#table1 td').remove();
+          makeAnime(a, list, clientNum);
+          console.log("re2");
+        });
+        socketio.on('already2', (clientNum, list, a) => {
+          $("#nomination").prop("disabled", true);
+          $('#table1 td').remove();
+          commonAnime2(a, list, clientNum);
+        });
+
+        socketio.once('create_draftedList', dl => {
+          try {
+            app.title = dl.title;
+          } catch (error) {
+            app.title ="";
+          }
+          endNum = dl.end;
+          $(`#table${dl.end}`).addClass("endNum");
+          $('#drafted_list li').remove();
+          $('#drafted_list').prepend(dl.list);
+          $('#drafted_list li').on('click', function () {
+            $("#drafted_list").find('li').removeClass("choiced");
+            $("#drafted_list li").eq(Array.prototype.indexOf.call(event.target.parentNode.querySelectorAll("li"), event.target)).addClass("choiced");
+          });
+        });
+
+        socketio.on('create_member', (client, client2) => {
+          $('#member_list li').remove();
+          $('#member_list').prepend(client);
+          $('#member_list2 th').remove();
+          $('#member_list2').prepend(client2);
+        });
+
+        const startGame = () => {
+          $("#nomination").prop("disabled", false);
+          $('.subjectReady').css("display", "none");
+          $('.subject').css("display", "inline");
+          $('.popupWrapper').addClass("show");
+        }
+        socketio.on('doraftedAlready', num => {
+          $("#drafted_list li").eq(num).addClass("doraftedAlready");
+          $("#drafted_list li").eq(num).removeClass("choiced");
         });
       });
 
-      socketio.on('create_member', (client, client2) => {
-        $('#member_list li').remove();
-        $('#member_list').prepend(client);
-        $('#member_list2 th').remove();
-        $('#member_list2').prepend(client2);
-      });
-
-      const startGame = () => {
-        $("#nomination").prop("disabled", false);
-        $('.subjectReady').css("display", "none");
-        $('.subject').css("display", "inline");
-        $('.popupWrapper').addClass("show");
-      }
-      socketio.on('doraftedAlready', num => {
-        $("#drafted_list li").eq(num).addClass("doraftedAlready");
-        $("#drafted_list li").eq(num).removeClass("choiced");
-      });
-    });
-
-    $('.exit').on('click', () => {
-      if (window.confirm("退出してよろしいですか？")) {
-        socketio.emit('exit');
-      } else {
-        return false;
-      }
-    });
-
-    const commonAnime = (a, list, num) => {
-      commonAnimeExecEND(a, list).then(() => {
-        $('#get').text("獲得しました！");
-        $("#nomination").prop("disabled", false);
-        if (Number($("#orderNum").text()) > endNum || lackDoraftListNum(num)) {
-          viewResult();
-          socketio.emit('end');
-          return;
+      $('.exit').on('click', () => {
+        if (window.confirm("退出してよろしいですか？")) {
+          socketio.emit('exit');
+        } else {
+          return false;
         }
       });
-    }
-    const commonAnime2 = (a, list) => {
-      commonAnimeExec(a, list).then(() => {
-        $('#get').text("獲得しました！");
-      });
-    }
-    const makeAnime = (a, list) => {
-      commonAnimeExec(a, list).then(() => {
-        $('#get').text("獲得できませんでした");
-        $("#nomination").prop("disabled", false);
-      });
-    }
 
-    async function commonAnimeExec(a, list, num) {
-      try {
-        for(let i = 0; i < a.length;i++){
-          await func(a, i);
+      $('.exit2').on('click', () => {
+        if (window.confirm("退出してよろしいですか？")) {
+          socketio.emit('exit');
+        } else {
+          return false;
         }
-      } catch (e) {
-        console.log(e);
-      }
-    }
+      });
 
-    async function commonAnimeExecEND(a, list, num) {
-      try {
-        for(let i = 0; i < a.length;i++){
-          await func(a, i);
+      const commonAnime = (a, list, num) => {
+        commonAnimeExecEND(a, list).then(() => {
+          $('#get').text("獲得しました！");
+          $("#nomination").prop("disabled", false);
+          if (Number($("#orderNum").text()) > endNum || lackDoraftListNum(num)) {
+            viewResult();
+            socketio.emit('end');
+            return;
+          }
+        });
+      }
+      const commonAnime2 = (a, list) => {
+        commonAnimeExec(a, list).then(() => {
+          $('#get').text("獲得しました！");
+        });
+      }
+      const makeAnime = (a, list) => {
+        commonAnimeExec(a, list).then(() => {
+          $('#get').text("獲得できませんでした");
+          $("#nomination").prop("disabled", false);
+        });
+      }
+
+      async function commonAnimeExec(a, list, num) {
+        try {
+          for (let i = 0; i < a.length; i++) {
+            await func(a, i);
+          }
+        } catch (e) {
+          console.log(e);
         }
-        $("#orderNum").text(Number($("#orderNum").text()) + 1);
-        $(`#table${$("#orderNum").text() - 1}`).after(createDoraftedResult(list));
-      } catch (e) {
-        console.log(e);
       }
-    }
 
-    const func = (a, i) => {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          $("#orderNu").html($("#orderNum").text() + "巡目");
-          $("#orderName").html(a[i].name);
-          $("#orderNomine").html($("#drafted_list li").eq(a[i].doraft).text());
-          $('#doraft').addClass("show");
-          resolve();
-        }, FADEINTIME);
-      });
-    }
+      async function commonAnimeExecEND(a, list, num) {
+        try {
+          for (let i = 0; i < a.length; i++) {
+            await func(a, i);
+          }
+          $("#orderNum").text(Number($("#orderNum").text()) + 1);
+          $(`#table${$("#orderNum").text() - 1}`).after(createDoraftedResult(list));
+        } catch (e) {
+          console.log(e);
+        }
+      }
 
-    const createDoraftedResult = doraftList => {
-      let str_ = "";
-      doraftList.forEach(str => {
-        str_ += `<td>${$("#drafted_list li").eq(str).text()}</td>`;
-      });
-      return str_;
-    }
+      const func = (a, i) => {
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            $("#orderNu").html($("#orderNum").text() + "巡目");
+            $("#orderName").html(a[i].name);
+            $("#orderNomine").html($("#drafted_list li").eq(a[i].doraft).text());
+            $('#doraft').addClass("show");
+            resolve();
+          }, FADEINTIME);
+        });
+      }
 
-    const lackDoraftListNum = clientNum => {
-      const num = Number(document.getElementById("drafted_list").childElementCount) - Number($(".doraftedAlready").length)
-      return clientNum > num ? true : false;
-    }
+      const createDoraftedResult = doraftList => {
+        let str_ = "";
+        doraftList.forEach(str => {
+          str_ += `<td>${$("#drafted_list li").eq(str).text()}</td>`;
+        });
+        return str_;
+      }
 
-    const viewResult = () => {
-      let clone = document.getElementById("draft_result").firstElementChild.cloneNode(true);
-      document.getElementById("content").appendChild(clone, document.getElementById("content").firstChild);
-      let clone2 = document.getElementById("exitf").cloneNode(true);
-      document.getElementById("content").appendChild(clone2);
-      $("#modal")[0].click();
-    }
-  </script>
+      const lackDoraftListNum = clientNum => {
+        const num = Number(document.getElementById("drafted_list").childElementCount) - Number($(".doraftedAlready").length);
+        return clientNum > num ? true : false;
+      }
+
+      const viewResult = () => {
+        M.Modal.init(document.querySelectorAll('.modal'));
+        const clone = document.getElementById("draft_result").firstElementChild.cloneNode(true);
+        document.getElementById("modal-content").appendChild(clone);
+        $("#modalbtn")[0].click();
+      }
+    </script>
 
 </body>
 

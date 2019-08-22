@@ -22,6 +22,11 @@ app.set("view engine", "ejs");
 app.use(express.static(__dirname + '/views/css'));
 app.use(express.static(__dirname + '/views/js'));
 
+http.listen(PORT, () => {
+    console.log(`server listening. Port: ${PORT}`);
+});
+
+
 app.get('/', (req, res) => {
     res.render("./pages/index.ejs", {
         msg: ""
@@ -34,17 +39,20 @@ app.post('/room', function (req, res) {
     if (req.body.drafted != void 0) {
         io.of('/').in(req.body.id).clients(function (error, clients) {
             if (RoomIDtoDoraftedList[req.body.id] !== void 0) {
+                //使用中
                 res.redirect(302, "/");
                 return;
             } else {
+                //OK
                 res.render("./pages/room.ejs", {
                     name: req.body.name,
                     id: req.body.id,
                     title: req.body.title,
                     end: req.body.end
                 });
-                RoomIDtoDoraftedList[req.body.id] = { list: createDoraftedListHTML(req.body.drafted), 
-                    status: "wait", 
+                RoomIDtoDoraftedList[req.body.id] = {
+                    list: createDoraftedListHTML(req.body.drafted),
+                    status: "wait",
                     title: req.body.title,
                     end: req.body.end
                 }
@@ -70,8 +78,6 @@ app.post('/room', function (req, res) {
 
     io.once('connection', function (socket) {
         socket.join(req.body.id);
-        RoomIDtoReady[req.body.id] = 0;
-        io.to(req.body.id).emit('reset');
         io.to(socket.id).emit('create_draftedList', RoomIDtoDoraftedList[req.body.id]);
         socetIDtoInfo[socket.id] = {
             name: req.body.name,
@@ -79,14 +85,18 @@ app.post('/room', function (req, res) {
         }
         io.of('/').in(req.body.id).clients(function (error, clients) {
             io.to(socetIDtoInfo[socket.id].id).emit('create_member', createMemberListHTML(clients), createMemberListHTML2(clients));
+
+            if (clients.length === 1) {
+                io.to(socket.id).emit('host');
+            }
         });
         io.to(socket.id).emit('create_draftedList', RoomIDtoDoraftedList[req.body.id]);
 
         socket.on('exit', () => {
             io.of('/').in(socetIDtoInfo[socket.id].id).clients(function (error, clients) {
-                socket.leave(Object.keys(socket.rooms)[1]);
+                socket.leave( socetIDtoInfo[socket.id].id);
                 if (clients.length == 1) {
-                    RoomIDtoDoraftedList[Object.keys(socket.rooms)[1]] = undefined;
+                    RoomIDtoDoraftedList[ socetIDtoInfo[socket.id].id] = undefined;
                     socetIDtoInfo[socket.id] = undefined;
                 }
                 socket.disconnect(socket.id);
@@ -102,20 +112,16 @@ app.post('/room', function (req, res) {
 //接続
 io.on('connection', function (socket) {
     socket.on('ready', () => {
-        const roomID = Object.keys(socket.rooms)[1];
-        RoomIDtoReady[roomID]++;
+        const roomID = socetIDtoInfo[socket.id].id;
+        RoomIDtoDoraftedList[roomID].status = "start";
+        RoomIDtoReady[roomID] = 0;
+        io.to(roomID).emit('start');
         io.of('/').in(roomID).clients((error, clients) => {
-            if (clients.length === RoomIDtoReady[roomID]) {
-                //全員Readyを押した
-                RoomIDtoDoraftedList[roomID].status = "start";
-                RoomIDtoReady[roomID] = 0;
-                io.to(roomID).emit('start');
-                RoomIDtoClientNum[roomID] = clients.length;
-            }
-        });
+            RoomIDtoClientNum[roomID] = clients.length;
+        })
     });
     socket.on('nomination', doraftChoice => {
-        const roomID = Object.keys(socket.rooms)[1];
+        const roomID = socetIDtoInfo[socket.id].id;
         RoomIDtoReady[roomID]++;
         io.of('/').in(roomID).clients((error, clients) => {
             doraftChoiceTemp[socket.id] = doraftChoice;
@@ -124,12 +130,9 @@ io.on('connection', function (socket) {
                 RoomIDtoReady[roomID] = 0;
 
                 let draftsChoiceList = []
-                for (let i = 0; i < clients.length; i++) {
-                    draftsChoiceList[i] = doraftChoiceTemp[clients[i]]
-                }
-                //配列つくる
                 let draftStatus = []
                 for (let i = 0; i < clients.length; i++) {
+                    draftsChoiceList[i] = doraftChoiceTemp[clients[i]]
                     draftStatus[i] = "決定済み";
                 }
 
@@ -210,9 +213,6 @@ io.on('connection', function (socket) {
     });
 });
 
-http.listen(PORT, () => {
-    console.log(`server listening. Port: ${PORT}`);
-});
 
 const createDoraftedListHTML = DoraftedList => {
     let str_ = "";
