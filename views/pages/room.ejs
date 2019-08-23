@@ -160,6 +160,9 @@
 
         /*******nomination******/
         $('#nomination').on('click', () => {
+          if($('.choiced').index('ul.drafted_list li') === -1){
+            return;
+          }
           $("#nomination").prop("disabled", true);
           socketio.emit('nomination', $('.choiced').index('ul.drafted_list li'));
         });
