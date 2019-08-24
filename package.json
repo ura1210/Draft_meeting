@@ -18,6 +18,8 @@
     "socket.io": "^2.2.0"
   },
   "devDependencies": {
+    "eslint": "^6.2.2",
+    "eslint-plugin-node": "^9.1.0",
     "request": "^2.81.0",
     "tape": "^4.7.0"
   },

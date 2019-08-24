@@ -9,10 +9,10 @@ const eventEmitter = new events.EventEmitter();
 eventEmitter.setMaxListeners(50)
 
 let socetIDtoInfo = {};
-let RoomIDtoDoraftedList = {};
-let RoomIDtoReady = {};
-let RoomIDtoClientNum = [];
-let doraftChoiceTemp = [];
+let roomIDtoDoraftedList = {};
+let roomIDtoReady = {};
+let roomIDtoClientNum = [];
+let draftChoiceTemp = [];
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -36,12 +36,14 @@ app.get('/', (req, res) => {
 
 /********************** room遷移時*************************/
 app.post('/room', function (req, res) {
-    if (req.body.drafted != void 0) {
+    if (req.body.drafted !== void 0) {
+         //host
         io.of('/').in(req.body.id).clients(function (error, clients) {
-            if (RoomIDtoDoraftedList[req.body.id] !== void 0) {
+            if (roomIDtoDoraftedList[req.body.id] !== void 0) {
                 //使用中
-                res.redirect(302, "/");
-                return;
+                res.render("./pages/index.ejs", {
+                    msg: "同名のIDの部屋が存在します。"
+                });
             } else {
                 //OK
                 res.render("./pages/room.ejs", {
@@ -50,7 +52,7 @@ app.post('/room', function (req, res) {
                     title: req.body.title,
                     end: req.body.end
                 });
-                RoomIDtoDoraftedList[req.body.id] = {
+                roomIDtoDoraftedList[req.body.id] = {
                     list: createDoraftedListHTML(req.body.drafted),
                     status: "wait",
                     title: req.body.title,
@@ -60,8 +62,9 @@ app.post('/room', function (req, res) {
         });
 
     } else {
+        //guest
         io.of('/').in(req.body.id).clients(function (error, clients) {
-            if (RoomIDtoDoraftedList[req.body.id] === void 0 || RoomIDtoDoraftedList[req.body.id].status != "wait") {
+            if (roomIDtoDoraftedList[req.body.id] === void 0 || roomIDtoDoraftedList[req.body.id].status != "wait") {
                 res.render("./pages/index.ejs", {
                     msg: "部屋が存在しないか、既に進行中です。"
                 });
@@ -78,7 +81,7 @@ app.post('/room', function (req, res) {
 
     io.once('connection', function (socket) {
         socket.join(req.body.id);
-        io.to(socket.id).emit('create_draftedList', RoomIDtoDoraftedList[req.body.id]);
+        io.to(socket.id).emit('create_draftedList', roomIDtoDoraftedList[req.body.id]);
         socetIDtoInfo[socket.id] = {
             name: req.body.name,
             id: req.body.id
@@ -90,21 +93,22 @@ app.post('/room', function (req, res) {
                 io.to(socket.id).emit('host');
             }
         });
-        io.to(socket.id).emit('create_draftedList', RoomIDtoDoraftedList[req.body.id]);
+        io.to(socket.id).emit('create_draftedList', roomIDtoDoraftedList[req.body.id]);
 
         socket.on('exit', () => {
             io.of('/').in(socetIDtoInfo[socket.id].id).clients(function (error, clients) {
                 socket.leave( socetIDtoInfo[socket.id].id);
-                if (clients.length == 1) {
-                    RoomIDtoDoraftedList[ socetIDtoInfo[socket.id].id] = undefined;
+                if (clients.length === 1) {
+                    roomIDtoDoraftedList[ socetIDtoInfo[socket.id].id] = undefined;
                     socetIDtoInfo[socket.id] = undefined;
                 }
                 socket.disconnect(socket.id);
             });
         });
         socket.on('end', () => {
-            RoomIDtoDoraftedList[socetIDtoInfo[socket.id].id] = undefined;
+            roomIDtoDoraftedList[socetIDtoInfo[socket.id].id] = undefined;
         });
+        
     });
 });
 
@@ -113,26 +117,26 @@ app.post('/room', function (req, res) {
 io.on('connection', function (socket) {
     socket.on('ready', () => {
         const roomID = socetIDtoInfo[socket.id].id;
-        RoomIDtoDoraftedList[roomID].status = "start";
-        RoomIDtoReady[roomID] = 0;
+        roomIDtoDoraftedList[roomID].status = "start";
+        roomIDtoReady[roomID] = 0;
         io.to(roomID).emit('start');
         io.of('/').in(roomID).clients((error, clients) => {
-            RoomIDtoClientNum[roomID] = clients.length;
+            roomIDtoClientNum[roomID] = clients.length;
         })
     });
     socket.on('nomination', doraftChoice => {
         const roomID = socetIDtoInfo[socket.id].id;
-        RoomIDtoReady[roomID]++;
+        roomIDtoReady[roomID]++;
         io.of('/').in(roomID).clients((error, clients) => {
-            doraftChoiceTemp[socket.id] = doraftChoice;
-            if (RoomIDtoClientNum[roomID] == RoomIDtoReady[roomID]) {
+            draftChoiceTemp[socket.id] = doraftChoice;
+            if (roomIDtoClientNum[roomID] == roomIDtoReady[roomID]) {
                 //全員選択した
-                RoomIDtoReady[roomID] = 0;
+                roomIDtoReady[roomID] = 0;
 
                 let draftsChoiceList = []
                 let draftStatus = []
                 for (let i = 0; i < clients.length; i++) {
-                    draftsChoiceList[i] = doraftChoiceTemp[clients[i]]
+                    draftsChoiceList[i] = draftChoiceTemp[clients[i]]
                     draftStatus[i] = "決定済み";
                 }
 
@@ -183,14 +187,14 @@ io.on('connection', function (socket) {
                     return x === "再指名"
                 }).length
 
-                RoomIDtoClientNum[socetIDtoInfo[socket.id].id] = count;
+                roomIDtoClientNum[socetIDtoInfo[socket.id].id] = count;
 
                 for (let i = 0; i < draftStatus.length; i++) {
                     io.to(socetIDtoInfo[socket.id].id).emit('doraftedAlready', draftsChoiceList[i]);
-                    if (RoomIDtoClientNum[socetIDtoInfo[socket.id].id] === 0) {
+                    if (roomIDtoClientNum[socetIDtoInfo[socket.id].id] === 0) {
                         //一巡終了
-                        if (i == draftStatus.length - 1) {
-                            RoomIDtoClientNum[socetIDtoInfo[socket.id].id] = clients.length;
+                        if (i === draftStatus.length - 1) {
+                            roomIDtoClientNum[socetIDtoInfo[socket.id].id] = clients.length;
                         }
                         if (draftStatus[i] === "今回決定") {
                             io.to(clientInfo[i].socketID).emit('determination', clients.length, draftsChoiceList, clientInfo);
@@ -214,25 +218,25 @@ io.on('connection', function (socket) {
 });
 
 
-const createDoraftedListHTML = DoraftedList => {
+const createDoraftedListHTML = doraftedList => {
     let str_ = "";
-    DoraftedList.split(/\n/).forEach(str => {
+    doraftedList.split(/\n/).forEach(str => {
         str_ += `<li>${str}</li>\n`;
     });
     return str_;
 }
 
-const createMemberListHTML = MemberList => {
+const createMemberListHTML = memberList => {
     let str_ = "";
-    MemberList.forEach(str => {
+    memberList.forEach(str => {
         str_ += `<li>${socetIDtoInfo[str].name}</li>`;
     });
     return str_;
 }
 
-const createMemberListHTML2 = MemberList => {
+const createMemberListHTML2 = memberList => {
     let str_ = "<th></th>";
-    MemberList.forEach(str => {
+    memberList.forEach(str => {
         str_ += `<th>${socetIDtoInfo[str].name}</th>`;
     });
     return str_;

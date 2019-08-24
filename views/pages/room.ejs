@@ -36,7 +36,7 @@
       <p id="now_ch"><%= id %></p>
       <button id="ready" class="btn waves-effect waves-light" >スタート</button>
       <form class="exit" id="exitf" action="/" method="get">
-        <button id="exit" class="btn waves-effect waves-light exit">退出</button>
+        <button id="exit" class="btn waves-effect waves-light">退出</button>
       </form>
     </div>
     <div class="wrapper result" id="result">
@@ -64,7 +64,7 @@
         </div>
         <div class="modal-footer">
             <form class="exit" action="/" method="get">
-              <button class="btn waves-effect waves-light exit">退出</button>
+              <button class="btn waves-effect waves-light">退出</button>
             </form>
         </div>
         <!-- <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
@@ -168,34 +168,34 @@
         });
         /*********************/
 
-        socketio.on('determination', (clientNum, list, a) => {
+        socketio.on('determination', (clientNum, draftsChoiceList, clientInfo) => {
           $("#nomination").prop("disabled", true);
           $('#table1 td').remove();
-          commonAnime(a, list, clientNum);
+          commonAnime(clientInfo, draftsChoiceList, clientNum);
           console.log("win");
         });
-        socketio.on('already', (clientNum, list, a) => {
+        socketio.on('already', (clientNum, draftsChoiceList, clientInfo) => {
           $("#nomination").prop("disabled", true);
           $('#table1 td').remove();
-          commonAnime(a, list, clientNum);
+          commonAnime(clientInfo, draftsChoiceList, clientNum);
         });
 
         /*********************/
-        socketio.on('determination2', (clientNum, list, a) => {
+        socketio.on('determination2', (clientNum, draftsChoiceList, clientInfo) => {
           $("#nomination").prop("disabled", true);
           $('#table1 td').remove();
-          commonAnime2(a, list, clientNum);
+          commonAnime2(clientInfo, draftsChoiceList, clientNum);
           console.log("win2");
         });
-        socketio.on('reDoraft2', (clientNum, list, a) => {
+        socketio.on('reDoraft2', (clientNum, draftsChoiceList, clientInfo) => {
           $('#table1 td').remove();
-          makeAnime(a, list, clientNum);
+          makeAnime(clientInfo, draftsChoiceList, clientNum);
           console.log("re2");
         });
-        socketio.on('already2', (clientNum, list, a) => {
+        socketio.on('already2', (clientNum, draftsChoiceList, clientInfo) => {
           $("#nomination").prop("disabled", true);
           $('#table1 td').remove();
-          commonAnime2(a, list, clientNum);
+          commonAnime2(clientInfo, draftsChoiceList, clientNum);
         });
 
         socketio.once('create_draftedList', dl => {
@@ -241,16 +241,8 @@
         }
       });
 
-      $('.exit2').on('click', () => {
-        if (window.confirm("退出してよろしいですか？")) {
-          socketio.emit('exit');
-        } else {
-          return false;
-        }
-      });
-
-      const commonAnime = (a, list, num) => {
-        commonAnimeExecEND(a, list).then(() => {
+      const commonAnime = (clientInfo, list, num) => {
+        commonAnimeExecEND(clientInfo, list).then(() => {
           $('#get').text("獲得しました！");
           $("#nomination").prop("disabled", false);
           if (Number($("#orderNum").text()) > endNum || lackDoraftListNum(num)) {
@@ -260,32 +252,32 @@
           }
         });
       }
-      const commonAnime2 = (a, list) => {
-        commonAnimeExec(a, list).then(() => {
+      const commonAnime2 = (clientInfo, list) => {
+        commonAnimeExec(clientInfo, list).then(() => {
           $('#get').text("獲得しました！");
         });
       }
-      const makeAnime = (a, list) => {
-        commonAnimeExec(a, list).then(() => {
+      const makeAnime = (clientInfo, list) => {
+        commonAnimeExec(clientInfo, list).then(() => {
           $('#get').text("獲得できませんでした");
           $("#nomination").prop("disabled", false);
         });
       }
 
-      async function commonAnimeExec(a, list, num) {
+      async function commonAnimeExec(clientInfo, list, num) {
         try {
-          for (let i = 0; i < a.length; i++) {
-            await func(a, i);
+          for (let i = 0; i < clientInfo.length; i++) {
+            await func(clientInfo, i);
           }
         } catch (e) {
           console.log(e);
         }
       }
 
-      async function commonAnimeExecEND(a, list, num) {
+      async function commonAnimeExecEND(clientInfo, list, num) {
         try {
-          for (let i = 0; i < a.length; i++) {
-            await func(a, i);
+          for (let i = 0; i < clientInfo.length; i++) {
+            await func(clientInfo, i);
           }
           $("#orderNum").text(Number($("#orderNum").text()) + 1);
           $(`#table${$("#orderNum").text() - 1}`).after(createDoraftedResult(list));
@@ -294,11 +286,11 @@
         }
       }
 
-      const func = (a, i) => {
+      const func = (clientInfo, i) => {
         return new Promise((resolve, reject) => {
           setTimeout(() => {
             $("#orderNu").html($("#orderNum").text() + "巡目");
-            $("#orderName").html(a[i].name);
+            $("#orderName").html(clientInfo[i].name);
             $("#orderNomine").html($("#drafted_list li").eq(a[i].doraft).text());
             $('#doraft').addClass("show");
             resolve();
