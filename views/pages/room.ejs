@@ -34,7 +34,7 @@
       <p id="name"><%= name %></p>
       <label>部屋ID:</label>
       <p id="now_ch"><%= id %></p>
-      <button id="ready" class="btn waves-effect waves-light" >スタート</button>
+      <button id="ready" class="btn waves-effect waves-light" v-if="isHost">スタート</button>
       <form class="exit" id="exitf" action="/" method="get">
         <button id="exit" class="btn waves-effect waves-light">退出</button>
       </form>
@@ -135,14 +135,23 @@
           data: {
             title: ""
           },
-        })
+          el: '#ready',
+          data: {
+            isHost = false
+          },
+          methods: {
+            init: function (event) {
+              socketio.on('host', () => {
+                ifHost = true;
+              });
+          },
+        }
+      })
 
       $(function () {
 
       /*******host******/
-      socketio.on('host', () => {
-        $("#ready").css("display", "inline");
-        });
+
         /*********************/
 
         /*******ready******/
