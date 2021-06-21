@@ -26,6 +26,7 @@ http.listen(PORT, () => {
     console.log(`server listening. Port: ${PORT}`);
 });
 
+
 app.get('/', (req, res) => {
     res.render("./pages/index.ejs", {
         msg: ""
@@ -36,7 +37,7 @@ app.get('/', (req, res) => {
 /********************** room遷移時*************************/
 app.post('/room', function (req, res) {
     if (req.body.drafted !== void 0) {
-        //host
+         //host
         io.of('/').in(req.body.id).clients(function (error, clients) {
             if (roomIDtoDoraftedList[req.body.id] !== void 0) {
                 //使用中
@@ -96,9 +97,9 @@ app.post('/room', function (req, res) {
 
         socket.on('exit', () => {
             io.of('/').in(socetIDtoInfo[socket.id].id).clients(function (error, clients) {
-                socket.leave(socetIDtoInfo[socket.id].id);
+                socket.leave( socetIDtoInfo[socket.id].id);
                 if (clients.length === 1) {
-                    roomIDtoDoraftedList[socetIDtoInfo[socket.id].id] = undefined;
+                    roomIDtoDoraftedList[ socetIDtoInfo[socket.id].id] = undefined;
                     socetIDtoInfo[socket.id] = undefined;
                 }
                 socket.disconnect(socket.id);
@@ -107,7 +108,7 @@ app.post('/room', function (req, res) {
         socket.on('end', () => {
             roomIDtoDoraftedList[socetIDtoInfo[socket.id].id] = undefined;
         });
-
+        
     });
 });
 
@@ -123,11 +124,11 @@ io.on('connection', function (socket) {
             roomIDtoClientNum[roomID] = clients.length;
         })
     });
-    socket.on('nomination', draftChoice => {
+    socket.on('nomination', doraftChoice => {
         const roomID = socetIDtoInfo[socket.id].id;
         roomIDtoReady[roomID]++;
         io.of('/').in(roomID).clients((error, clients) => {
-            draftChoiceTemp[socket.id] = draftChoice;
+            draftChoiceTemp[socket.id] = doraftChoice;
             if (roomIDtoClientNum[roomID] == roomIDtoReady[roomID]) {
                 //全員選択した
                 roomIDtoReady[roomID] = 0;
@@ -143,12 +144,14 @@ io.on('connection', function (socket) {
                 let b1 = draftsChoiceList.filter((val, idx, self) => {
                     return self.indexOf(val) === self.lastIndexOf(val);
                 });
-
-                for (const of b1) {
-                    draftStatus[draftsChoiceList.indexOf(b)] = "今回決定";
+                for (let i = 0; i < b1.length; i++) {
+                    draftStatus[draftsChoiceList.indexOf(b1[i])] = "今回決定";
                 }
 
-
+                //競合してる配列
+                let d = draftsChoiceList.filter(function (x, i, self) {
+                    return self.indexOf(x) === i && i !== self.lastIndexOf(x);
+                });
 
                 //競合
                 let clientInfo = [];
@@ -157,34 +160,34 @@ io.on('connection', function (socket) {
                         {
                             name: socetIDtoInfo[clients[i]].name,
                             socketID: clients[i],
-                            draft: draftsChoiceList[i]
+                            doraft: draftsChoiceList[i]
                         }
                     );
                 }
-                
-                //競合してる配列
-                let d = draftsChoiceList.filter(function (x, i, self) {
-                    return self.indexOf(x) === i && i !== self.lastIndexOf(x);
-                });
 
-                for (const a of d) {
-                    const result = draftsChoiceList.reduce(function (acc, value, i) {
-                        if (value === a) {
-                            acc.push(i);
+                for (let i = 0; i < d.length; i++) {
+                    const result = draftsChoiceList.reduce(function (accumulator, currentValue, index) {
+                        if (currentValue === d[i]) {
+                            accumulator.push(index);
                         }
-                        return acc;
+                        return accumulator;
                     }, [])
                     const random = result[Math.floor(Math.random() * result.length)];
                     draftStatus[random] = "今回決定";
+
                 }
 
                 for (let i = 0; i < draftStatus.length; i++) {
-                    draftStatus[i] = draftStatus[i] !== "今回決定" ? "再指名" : draftStatus[i];
+                    if (draftStatus[i] !== "今回決定") {
+                        draftStatus[i] = "再指名";
+                    }
                 }
 
-                roomIDtoClientNum[socetIDtoInfo[socket.id].id] = draftStatus.filter(x => {
+                const count = draftStatus.filter(x => {
                     return x === "再指名"
-                }).length;
+                }).length
+
+                roomIDtoClientNum[socetIDtoInfo[socket.id].id] = count;
 
                 for (let i = 0; i < draftStatus.length; i++) {
                     io.to(socetIDtoInfo[socket.id].id).emit('doraftedAlready', draftsChoiceList[i]);

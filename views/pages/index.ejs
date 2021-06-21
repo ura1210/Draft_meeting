@@ -1,118 +1,243 @@
-<!DOCTYPE html>
-<html>
+const express = require('express');
+const app = express();
+const http = require('http').Server(app);
+const bodyParser = require('body-parser');
+const io = require('socket.io')(http);
+const PORT = process.env.PORT || 7000;
+const events = require('events');
+const eventEmitter = new events.EventEmitter();
+eventEmitter.setMaxListeners(50)
 
-<head>
-  <title>ドラフトごっこ(β)</title>
-  <link href="https://fonts.googleapis.com/earlyaccess/kokoro.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c" rel="stylesheet">
-  <script src="/materialize.js"></script>
-  <link rel="stylesheet" href="/materialize.css">
-  <link rel="stylesheet" href="/index.css">
-</head>
+let socetIDtoInfo = {};
+let roomIDtoDoraftedList = {};
+let roomIDtoReady = {};
+let roomIDtoClientNum = [];
+let draftChoiceTemp = [];
 
-<body>
-  <div class="wrapper all container">
-    <div class="wrapper title">
-      <h1>ドラフトごっこ(β)</h1>
-    </div>
-    <div class="wrapper inputbox">
-      <div class="create row">
-        <h2>部屋を作成</h2>
-        <form id="create_form" action="/room" method="POST">
-          <div class="row">
-            <div class="input-field col s6">
-              <label>ニックネーム</label>
-              <input type="text" class="validate" id="careate_name" autocomplete="off" name="name" required />
-            </div>
-            <div class="input-field col s6">
-              <label>部屋ID</label>
-              <input type="text" class="validate" autocomplete="off" name="id" required />
-            </div>
-            <div class="input-field col s6">
-              <label>タイトル</label>
-              <input type="text" autocomplete="off" name="title" />
-            </div>
-            <div class="input-field col s6">
-                <select name="end" form="create_form">
-                    <option value="10">10</option>
-                    <option value="9">9</option>
-                    <option value="8">8</option>
-                    <option value="7">7</option>
-                    <option value="6">6</option>
-                    <option value="5">5</option>
-                    <option value="4">4</option>
-                    <option value="3">3</option>
-                    <option value="2">2</option>
-                    <option value="1">1</option>
-                </select>
-                <label>終了巡目数</label>
-              </div>
-            <div class="input-field col s12">
-              <label>ドラフト候補一覧</label>
-              <textarea name="drafted" class="materialize-textarea" rows="8" cols="50"
-                required></textarea>
-            </div>
-          </div>
-          <div>
-            <p id="msg"><%= msg %></p>
-          </div>
-          <div class="roomButton">
-            <button class="btn waves-effect waves-light" type="submit" name="action">
-              作成
-            </button>
-          </div>
-        </form>
-      </div>
-      <div class="in" id="in_room_wrapper">
-        <h2>部屋に入室</h2>
-        <form id="in_form" action="/room" method="POST">
-          <div class="input-field col s6">
-            <label>ニックネーム</label>
-            <input type="text" id="in_name" autocomplete="off" name="name" required />
-          </div>
-          <div class="input-field col s6">
-            <label>部屋ID</label>
-            <input type="text" id="in_channel" autocomplete="off" name="id" required />
-          </div>
-          <div class="roomButton">
-            <button class="btn waves-effect waves-light" type="submit" name="action">
-              入室
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-    <div class="container howto">
-      <h3>遊び方</h3>
-      <ol>
-        <li>ニックネーム、部屋ID、タイトル、ドラフト候補を入力して部屋を作成。ドラフト候補は一つを一行づつ入力してください。
-          </br>または既に存在する部屋にニックネームと部屋IDを入力して入室</li>
-        <li>メンバーが揃って準備ができたらREADYボタンをクリック</li>
-        <li>獲得したいドラフト候補を選択して指名ボタンをクリック</li>
-      </ol>
-      <h3>ルール</h3>
-      <ul>
-        <li>　同一順目で競合した場合、指名者内から抽選し、抽選負けの場合は再指名</li>
-        <li>全員が1人獲得確定したら1順終了</li>
-        <li>設定した終了巡目数まで指名、または参加人数よりドラフト候補が少なくなったら終了</li>
-      </ul>
-    </div>
-  </div>
-  <footer class="page-footer">
-    <div class="footer-copyright">
-      <div class="container">
-        © 2019 ドラフトごっこ　Copyright All rights reserved.
-        <a class="grey-text text-lighten-4 right" href="#!">developed by @ura</a>
-      </div>
-    </div>
-  </footer>
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 
-  <script>
-  document.addEventListener('DOMContentLoaded', () => {
-      M.FormSelect.init(document.querySelectorAll('select'));
-  });
+app.set("view engine", "ejs");
 
-  </script>
-</body>
+app.use(express.static(__dirname + '/views/css'));
+app.use(express.static(__dirname + '/views/js'));
 
-</html>
+http.listen(PORT, () => {
+    console.log(`server listening. Port: ${PORT}`);
+});
+
+
+app.get('/', (req, res) => {
+    res.render("./pages/index.ejs", {
+        msg: ""
+    });
+
+});
+
+/********************** room遷移時*************************/
+app.post('/room', function (req, res) {
+    if (req.body.drafted !== void 0) {
+         //host
+        io.of('/').in(req.body.id).clients(function (error, clients) {
+            if (roomIDtoDoraftedList[req.body.id] !== void 0) {
+                //使用中
+                res.render("./pages/index.ejs", {
+                    msg: "同名のIDの部屋が存在します。"
+                });
+            } else {
+                //OK
+                res.render("./pages/room.ejs", {
+                    name: req.body.name,
+                    id: req.body.id,
+                    title: req.body.title,
+                    end: req.body.end
+                });
+                roomIDtoDoraftedList[req.body.id] = {
+                    list: createDoraftedListHTML(req.body.drafted),
+                    status: "wait",
+                    title: req.body.title,
+                    end: req.body.end
+                }
+            }
+        });
+
+    } else {
+        //guest
+        io.of('/').in(req.body.id).clients(function (error, clients) {
+            if (roomIDtoDoraftedList[req.body.id] === void 0 || roomIDtoDoraftedList[req.body.id].status != "wait") {
+                res.render("./pages/index.ejs", {
+                    msg: "部屋が存在しないか、既に進行中です。"
+                });
+                return;
+            }
+            res.render("./pages/room.ejs", {
+                name: req.body.name,
+                id: req.body.id,
+                title: req.body.title,
+                end: req.body.end
+            });
+        });
+    }
+
+    io.once('connection', function (socket) {
+        socket.join(req.body.id);
+        io.to(socket.id).emit('create_draftedList', roomIDtoDoraftedList[req.body.id]);
+        socetIDtoInfo[socket.id] = {
+            name: req.body.name,
+            id: req.body.id
+        }
+        io.of('/').in(req.body.id).clients(function (error, clients) {
+            io.to(socetIDtoInfo[socket.id].id).emit('create_member', createMemberListHTML(clients), createMemberListHTML2(clients));
+
+            if (clients.length === 1) {
+                io.to(socket.id).emit('host');
+            }
+        });
+        io.to(socket.id).emit('create_draftedList', roomIDtoDoraftedList[req.body.id]);
+
+        socket.on('exit', () => {
+            io.of('/').in(socetIDtoInfo[socket.id].id).clients(function (error, clients) {
+                socket.leave( socetIDtoInfo[socket.id].id);
+                if (clients.length === 1) {
+                    roomIDtoDoraftedList[ socetIDtoInfo[socket.id].id] = undefined;
+                    socetIDtoInfo[socket.id] = undefined;
+                }
+                socket.disconnect(socket.id);
+            });
+        });
+        socket.on('end', () => {
+            roomIDtoDoraftedList[socetIDtoInfo[socket.id].id] = undefined;
+        });
+        
+    });
+});
+
+/***************************************************/
+//接続
+io.on('connection', function (socket) {
+    socket.on('ready', () => {
+        const roomID = socetIDtoInfo[socket.id].id;
+        roomIDtoDoraftedList[roomID].status = "start";
+        roomIDtoReady[roomID] = 0;
+        io.to(roomID).emit('start');
+        io.of('/').in(roomID).clients((error, clients) => {
+            roomIDtoClientNum[roomID] = clients.length;
+        })
+    });
+    socket.on('nomination', doraftChoice => {
+        const roomID = socetIDtoInfo[socket.id].id;
+        roomIDtoReady[roomID]++;
+        io.of('/').in(roomID).clients((error, clients) => {
+            draftChoiceTemp[socket.id] = doraftChoice;
+            if (roomIDtoClientNum[roomID] == roomIDtoReady[roomID]) {
+                //全員選択した
+                roomIDtoReady[roomID] = 0;
+
+                let draftsChoiceList = []
+                let draftStatus = []
+                for (let i = 0; i < clients.length; i++) {
+                    draftsChoiceList[i] = draftChoiceTemp[clients[i]]
+                    draftStatus[i] = "決定済み";
+                }
+
+                //競合なしなら決定
+                let b1 = draftsChoiceList.filter((val, idx, self) => {
+                    return self.indexOf(val) === self.lastIndexOf(val);
+                });
+                for (let i = 0; i < b1.length; i++) {
+                    draftStatus[draftsChoiceList.indexOf(b1[i])] = "今回決定";
+                }
+
+                //競合してる配列
+                let d = draftsChoiceList.filter(function (x, i, self) {
+                    return self.indexOf(x) === i && i !== self.lastIndexOf(x);
+                });
+
+                //競合
+                let clientInfo = [];
+                for (let i = 0; i < draftStatus.length; i++) {
+                    clientInfo[i] = (
+                        {
+                            name: socetIDtoInfo[clients[i]].name,
+                            socketID: clients[i],
+                            doraft: draftsChoiceList[i]
+                        }
+                    );
+                }
+
+                for (let i = 0; i < d.length; i++) {
+                    const result = draftsChoiceList.reduce(function (accumulator, currentValue, index) {
+                        if (currentValue === d[i]) {
+                            accumulator.push(index);
+                        }
+                        return accumulator;
+                    }, [])
+                    const random = result[Math.floor(Math.random() * result.length)];
+                    draftStatus[random] = "今回決定";
+
+                }
+
+                for (let i = 0; i < draftStatus.length; i++) {
+                    if (draftStatus[i] !== "今回決定") {
+                        draftStatus[i] = "再指名";
+                    }
+                }
+
+                const count = draftStatus.filter(x => {
+                    return x === "再指名"
+                }).length
+
+                roomIDtoClientNum[socetIDtoInfo[socket.id].id] = count;
+
+                for (let i = 0; i < draftStatus.length; i++) {
+                    io.to(socetIDtoInfo[socket.id].id).emit('doraftedAlready', draftsChoiceList[i]);
+                    if (roomIDtoClientNum[socetIDtoInfo[socket.id].id] === 0) {
+                        //一巡終了
+                        if (i === draftStatus.length - 1) {
+                            roomIDtoClientNum[socetIDtoInfo[socket.id].id] = clients.length;
+                        }
+                        if (draftStatus[i] === "今回決定") {
+                            io.to(clientInfo[i].socketID).emit('determination', clients.length, draftsChoiceList, clientInfo);
+                        } else {
+                            io.to(clientInfo[i].socketID).emit('already', clients.length, draftsChoiceList, clientInfo);
+                        }
+                    } else {
+                        if (draftStatus[i] === "今回決定") {
+                            io.to(clientInfo[i].socketID).emit('determination2', clients.length, draftsChoiceList, clientInfo);
+                        } else if (draftStatus[i] === "再指名") {
+                            io.to(clientInfo[i].socketID).emit('reDoraft2', clients.length, draftsChoiceList, clientInfo);
+                        } else {
+                            io.to(clientInfo[i].socketID).emit('already2', clients.length, draftsChoiceList, clientInfo);
+                        }
+                    }
+                }
+
+            }
+        });
+    });
+});
+
+
+const createDoraftedListHTML = doraftedList => {
+    let str_ = "";
+    doraftedList.split(/\n/).forEach(str => {
+        str_ += `<li>${str}</li>\n`;
+    });
+    return str_;
+}
+
+const createMemberListHTML = memberList => {
+    let str_ = "";
+    memberList.forEach(str => {
+        str_ += `<li>${socetIDtoInfo[str].name}</li>`;
+    });
+    return str_;
+}
+
+const createMemberListHTML2 = memberList => {
+    let str_ = "<th></th>";
+    memberList.forEach(str => {
+        str_ += `<th>${socetIDtoInfo[str].name}</th>`;
+    });
+    return str_;
+}

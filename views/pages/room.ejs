@@ -34,7 +34,7 @@
       <p id="name"><%= name %></p>
       <label>部屋ID:</label>
       <p id="now_ch"><%= id %></p>
-      <button id="ready" class="btn waves-effect waves-light" v-if="isHost">スタート</button>
+      <button id="ready" class="btn waves-effect waves-light" >スタート</button>
       <form class="exit" id="exitf" action="/" method="get">
         <button id="exit" class="btn waves-effect waves-light">退出</button>
       </form>
@@ -129,44 +129,29 @@
       const socketio = io();
       const FADEINTIME = 6500;
       let endNum = 10;
-
       const app = new Vue({
           el: '#title',
           data: {
             title: ""
           },
-          el: '#ready',
-          data: {
-            isHost = false
-          },
-          methods: {
-            init: function (event) {
-              socketio.on('host', () => {
-                ifHost = true;
-              });
-          },
-        }
-      })
-
+        })
       $(function () {
-
       /*******host******/
-
+      socketio.on('host', () => {
+        $("#ready").css("display", "inline");
+        });
         /*********************/
-
         /*******ready******/
         $('#ready').on('click', () => {
           $("#ready").prop("disabled", true);
           socketio.emit('ready');
         });
         /*********************/
-
         /*******start******/
         socketio.on('start', () => {
           startGame();
         });
         /*********************/
-
         /*******nomination******/
         $('#nomination').on('click', () => {
           if($('.choiced').index('ul.drafted_list li') === -1){
@@ -176,7 +161,6 @@
           socketio.emit('nomination', $('.choiced').index('ul.drafted_list li'));
         });
         /*********************/
-
         socketio.on('determination', (clientNum, draftsChoiceList, clientInfo) => {
           $("#nomination").prop("disabled", true);
           $('#table1 td').remove();
@@ -188,7 +172,6 @@
           $('#table1 td').remove();
           commonAnime(clientInfo, draftsChoiceList, clientNum);
         });
-
         /*********************/
         socketio.on('determination2', (clientNum, draftsChoiceList, clientInfo) => {
           $("#nomination").prop("disabled", true);
@@ -206,7 +189,6 @@
           $('#table1 td').remove();
           commonAnime2(clientInfo, draftsChoiceList, clientNum);
         });
-
         socketio.once('create_draftedList', dl => {
           try {
             app.title = dl.title;
@@ -222,14 +204,12 @@
             $("#drafted_list li").eq(Array.prototype.indexOf.call(event.target.parentNode.querySelectorAll("li"), event.target)).addClass("choiced");
           });
         });
-
         socketio.on('create_member', (client, client2) => {
           $('#member_list li').remove();
           $('#member_list').prepend(client);
           $('#member_list2 th').remove();
           $('#member_list2').prepend(client2);
         });
-
         const startGame = () => {
           $("#nomination").prop("disabled", false);
           $('.subjectReady').css("display", "none");
@@ -241,7 +221,6 @@
           $("#drafted_list li").eq(num).removeClass("choiced");
         });
       });
-
       $('.exit').on('click', () => {
         if (window.confirm("退出してよろしいですか？")) {
           socketio.emit('exit');
@@ -249,7 +228,6 @@
           return false;
         }
       });
-
       const commonAnime = (clientInfo, list, num) => {
         commonAnimeExecEND(clientInfo, list).then(() => {
           $('#get').text("獲得しました！");
@@ -272,7 +250,6 @@
           $("#nomination").prop("disabled", false);
         });
       }
-
       async function commonAnimeExec(clientInfo, list, num) {
         try {
           for (let i = 0; i < clientInfo.length; i++) {
@@ -282,7 +259,6 @@
           console.log(e);
         }
       }
-
       async function commonAnimeExecEND(clientInfo, list, num) {
         try {
           for (let i = 0; i < clientInfo.length; i++) {
@@ -294,7 +270,6 @@
           console.log(e);
         }
       }
-
       const func = (clientInfo, i) => {
         return new Promise((resolve, reject) => {
           setTimeout(() => {
@@ -306,7 +281,6 @@
           }, FADEINTIME);
         });
       }
-
       const createDoraftedResult = doraftList => {
         let str_ = "";
         doraftList.forEach(str => {
@@ -314,12 +288,10 @@
         });
         return str_;
       }
-
       const lackDoraftListNum = clientNum => {
         const num = Number(document.getElementById("drafted_list").childElementCount) - Number($(".doraftedAlready").length);
         return clientNum > num ? true : false;
       }
-
       const viewResult = () => {
         M.Modal.init(document.querySelectorAll('.modal'));
         const clone = document.getElementById("draft_result").firstElementChild.cloneNode(true);
